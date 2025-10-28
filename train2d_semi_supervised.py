@@ -1,5 +1,12 @@
 from segmentation_models_pytorch.deeplabv3 import DeepLabV3Plus
+# 抑制nnunet的打印输出
+import sys
+import os
+old_stderr = sys.stderr
+sys.stderr = open(os.devnull, 'w')
 from nnunet.training.loss_functions import dice_loss, crossentropy
+sys.stderr = old_stderr
+
 from torch.utils.data import Dataset,DataLoader
 import torch
 from torch.nn.functional import one_hot
@@ -7,6 +14,9 @@ import nibabel as nib
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 from utils import *
+import matplotlib
+matplotlib.use('AGG')  # 用于无显示器的服务器环境
+import matplotlib.pyplot as plt
 from albumentations import (HorizontalFlip,Resize, IAAPerspective, ShiftScaleRotate, CLAHE, Rotate,
 Transpose, ShiftScaleRotate, Blur, OpticalDistortion, GridDistortion, HueSaturationValue, IAAAdditiveGaussianNoise, GaussNoise, MotionBlur,
                             MedianBlur, RandomBrightnessContrast, IAAPiecewiseAffine, IAASharpen, IAAEmboss, Flip, OneOf, Compose,ElasticTransform, Normalize)
@@ -55,12 +65,28 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 def plot(savepath,name,x,y1,y2):
+    plt.figure(figsize=(10, 6))
     plt.title(name)
-    plt.plot(x,y1,color='red', label='train')
-    plt.plot(x, y2, color='green', label='valid')
+    plt.plot(x,y1,color='red', label='train', linewidth=2)
+    plt.plot(x, y2, color='green', label='valid', linewidth=2)
     plt.legend(loc='upper right')
     plt.xlabel('epoch')
-    plt.savefig(os.path.join(savepath, name + '.png'))
+    plt.ylabel('value')
+    plt.grid(True, alpha=0.3)
+    plt.savefig(os.path.join(savepath, name + '.png'), dpi=300, bbox_inches='tight')
+    plt.close()
+
+def plot_two_lines(savepath, name, x, y1, y2, label1='Line1', label2='Line2'):
+    """绘制两条线的对比图"""
+    plt.figure(figsize=(10, 6))
+    plt.title(name)
+    plt.plot(x, y1, color='blue', label=label1, linewidth=2)
+    plt.plot(x, y2, color='orange', label=label2, linewidth=2)
+    plt.legend(loc='upper right')
+    plt.xlabel('epoch')
+    plt.ylabel('value')
+    plt.grid(True, alpha=0.3)
+    plt.savefig(os.path.join(savepath, name + '.png'), dpi=300, bbox_inches='tight')
     plt.close()
 
 def savemodel(path,model,nowloss,bestloss):
@@ -309,8 +335,7 @@ def progress(istrain, epoch, model,optimizer, loader,writer):
     return Mean_dice1.avg, Mean_dice2.avg
 
 
-def trainer(writer):
-
+def trainer(writer, epoch, criterion_ce=None, criteion_ce_dc=None):
     total_loss1 = AverageMeter()
     total_loss2 = AverageMeter()
     total_loss3 = AverageMeter()
@@ -465,6 +490,19 @@ def trainer(writer):
     print('epoch:{0} Trainloss1:{1}, Trainloss2:{2}, Meandice1:{3}, Meandice2:{4}'.format(epoch, total_loss1.avg,
                                                                                       total_loss2.avg,
                                                                                       Mean_dice1.avg, Mean_dice2.avg))
+    
+    # 返回训练指标
+    return {
+        'loss1': total_loss1.avg,
+        'loss2': total_loss2.avg,
+        'loss_un': total_loss3.avg,
+        'dice1': Mean_dice1.avg,
+        'dice2': Mean_dice2.avg
+    }
+
+def trainer_with_metrics(writer, epoch, criterion_ce, criteion_ce_dc):
+    """包装trainer函数，使其返回指标"""
+    return trainer(writer, epoch, criterion_ce, criteion_ce_dc)
 
 def readtxt(name):
     allname = []
@@ -617,9 +655,12 @@ if __name__=='__main__':
     parser.add_argument('--cutmix_boxmask_no_invert', type=bool, default=False, help='where invert.')
     config = parser.parse_args()
 
-    weightpath = os.path.join('./weight',  config.exid)
-    logpath = os.path.join('./log',  config.exid)
-    losspath = os.path.join('./loss',  config.exid)
+    # 创建新的results文件夹，将所有训练结果放在一起
+    resultspath = os.path.join('./results', config.exid)
+    weightpath = os.path.join(resultspath, 'weight')
+    logpath = os.path.join(resultspath, 'log')
+    losspath = os.path.join(resultspath, 'loss')
+    plotpath = os.path.join(resultspath, 'plots')
 
     np.random.seed(config.seed)
     torch.manual_seed(config.seed)
@@ -634,6 +675,7 @@ if __name__=='__main__':
             os.makedirs(os.path.join(weightpath, sub), exist_ok=True)
             os.makedirs(os.path.join(logpath, sub), exist_ok=True)
             os.makedirs(os.path.join(losspath, sub), exist_ok=True)
+            os.makedirs(os.path.join(plotpath, sub), exist_ok=True)
             train_writer = SummaryWriter(log_dir=os.path.join(os.path.join(losspath, sub), 'train'))
             test_writer = SummaryWriter(log_dir=os.path.join(os.path.join(losspath, sub), 'test'))
             model = DualNetwork(config).cuda()
@@ -684,24 +726,74 @@ if __name__=='__main__':
             criterion_ce = crossentropy.RobustCrossEntropyLoss()
             criteion_ce_dc = dice_loss.DC_and_CE_loss(soft_dice_kwargs={}, ce_kwargs=dict())
 
-            trainloss = []
-            trainacc = []
-            testloss = []
-            testacc = []
+            # 用于存储每个epoch的指标
+            trainloss1_list = []
+            trainloss2_list = []
+            trainloss_un_list = []
+            traindice1_list = []
+            traindice2_list = []
+            testloss1_list = []
+            testloss2_list = []
+            testdice1_list = []
+            testdice2_list = []
+            
             bestdsc1 = 0
             smootheval1 = None
             bestdsc2 = 0
             smootheval2 = None
             for epoch in range(config.epochs):
-                trainer(train_writer)
+                # 训练
+                train_metrics = trainer_with_metrics(train_writer, epoch, criterion_ce, criteion_ce_dc)
+                trainloss1_list.append(train_metrics['loss1'])
+                trainloss2_list.append(train_metrics['loss2'])
+                trainloss_un_list.append(train_metrics['loss_un'])
+                traindice1_list.append(train_metrics['dice1'])
+                traindice2_list.append(train_metrics['dice2'])
+                
                 scheduler1.step()
                 scheduler2.step()
+                
                 with torch.no_grad():
-                    dsc1,dsc2 = progress(istrain=False, epoch=epoch, model=model, optimizer=None,
-                                         loader=testloader,writer=test_writer)
+                    dsc1, dsc2 = progress(istrain=False, epoch=epoch, model=model, optimizer=None,
+                                         loader=testloader, writer=test_writer)
                     smootheval1 = smoothVal(dsc1, lastsmoothval=smootheval1)
                     smootheval2 = smoothVal(dsc2, lastsmoothval=smootheval2)
-                # scheduler.step()
-                bestdsc1 = savemodel(os.path.join(os.path.join(weightpath, sub), 'branch1'),model,smootheval1,bestdsc1)
-                bestdsc2 = savemodel(os.path.join(os.path.join(weightpath, sub), 'branch2'), model, smootheval2,
-                                     bestdsc2)
+                    
+                    testdice1_list.append(smootheval1)
+                    testdice2_list.append(smootheval2)
+                
+                # 保存模型
+                bestdsc1 = savemodel(os.path.join(os.path.join(weightpath, sub), 'branch1'), model, smootheval1, bestdsc1)
+                bestdsc2 = savemodel(os.path.join(os.path.join(weightpath, sub), 'branch2'), model, smootheval2, bestdsc2)
+                
+                # 每个epoch自动保存折线图
+                if (epoch + 1) % 10 == 0 or epoch == 0:  # 每10个epoch或第一个epoch保存
+                    epochs = list(range(epoch + 1))
+                    
+                    # 确保testdice列表长度与epoch一致
+                    if len(testdice1_list) < epoch + 1:
+                        testdice1_list += [0] * (epoch + 1 - len(testdice1_list))
+                    if len(testdice2_list) < epoch + 1:
+                        testdice2_list += [0] * (epoch + 1 - len(testdice2_list))
+                    
+                    # 绘制train vs test dice对比图 (Branch1)
+                    plot(os.path.join(plotpath, sub), 'dice_train_vs_test_branch1', epochs,
+                         traindice1_list, testdice1_list)
+                    
+                    # 绘制train vs test dice对比图 (Branch2)
+                    plot(os.path.join(plotpath, sub), 'dice_train_vs_test_branch2', epochs,
+                         traindice2_list, testdice2_list)
+                    
+                    # 绘制branch1和branch2的loss对比
+                    plot_two_lines(os.path.join(plotpath, sub), 'loss_branch_comparison', epochs,
+                                  trainloss1_list, trainloss2_list, 'Branch1', 'Branch2')
+                    
+                    # 绘制branch1和branch2的dice对比
+                    plot_two_lines(os.path.join(plotpath, sub), 'dice_branch_comparison', epochs,
+                                  traindice1_list, traindice2_list, 'Branch1', 'Branch2')
+                    
+                    # 绘制train vs test loss对比
+                    plot_two_lines(os.path.join(plotpath, sub), 'loss_train_comparison', epochs,
+                                  trainloss1_list, trainloss2_list, 'Train Loss1', 'Train Loss2')
+                    
+                    print(f'Epoch {epoch}: images saved in {os.path.join(plotpath, sub)}')
