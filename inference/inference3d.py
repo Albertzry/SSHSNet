@@ -3,6 +3,10 @@ import numpy as np
 import nibabel as nib
 import math
 import os
+import sys
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import torch
 import matplotlib
 import matplotlib.pyplot as plt
@@ -15,13 +19,13 @@ import torch.nn as nn
 import pickle as pk
 from augmentations.transforms import Compose as Compose3D
 from augmentations.transforms import CropNonEmptyMaskIfExists, PadIfNeeded, PadUpAndDown
-from data_parallel_my_v2 import BalancedDataParallel
+from models.data_parallel_my_v2 import BalancedDataParallel
 from skimage.transform import resize
-from seresnet import se_resnext50, DeepLabV3PlusDecoder, se_resnet50
+from models.seresnet import se_resnext50, DeepLabV3PlusDecoder, se_resnet50
 import torch.nn.functional as F
 import SimpleITK as sitk
 import time
-from spatial_attention_module import DualCrossAttModule,TrippleDualCrossAttModule
+from models.spatial_attention_module import DualCrossAttModule, TrippleDualCrossAttModule
 
 def normalize(img):
     data = img

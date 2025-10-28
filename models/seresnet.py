@@ -3,12 +3,16 @@
 # ResNeXt: Copy from https://github.com/last-one/tools/blob/master/pytorch/SE-ResNeXt/SeResNeXt.py
 import torch.nn as nn
 import math
-from Deeplabv3decoder import DeepLabV3PlusDecoder
+import sys
+import os
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from .Deeplabv3decoder import DeepLabV3PlusDecoder
 from segmentation_models_pytorch.deeplabv3 import DeepLabV3Plus
 import torch.nn.functional as F
 import torch
-import os
-from Deeplabv3decoder import ASPP, SeparableConv3d
+from .Deeplabv3decoder import ASPP, SeparableConv3d
 
 
 class DeepLabV3Plus_2d(DeepLabV3Plus):

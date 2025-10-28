@@ -1,3 +1,8 @@
+import sys
+import os
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from segmentation_models_pytorch.deeplabv3 import DeepLabV3Plus
 from nnunet.training.loss_functions import dice_loss, crossentropy
 from torch.utils.data import Dataset, DataLoader
@@ -5,17 +10,17 @@ from torch.nn.functional import one_hot
 import torch.nn.functional as F
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
-from utils import *
+from utils.utils import *
 import torch
 import nibabel as nib
 from skimage.transform import resize
 from augmentations.transforms import Compose, GaussianNoise, Flip, \
     PadIfNeeded, CropNonEmptyMaskIfExists, RandomRotate90, RandomScale2, PadUpAndDown, RotatePseudo2D, \
     ElasticTransformPseudo2D, CropNonEmptyMaskIfExistsBalance, Resize
-from seresnet import se_resnext50, DeepLabV3PlusDecoder, se_resnet50
+from models.seresnet import se_resnext50, DeepLabV3PlusDecoder, se_resnet50
 from medpy.metric import dc
 import pickle as pk
-from spatial_attention_module import  TrippleDualCrossAttModule
+from models.spatial_attention_module import TrippleDualCrossAttModule
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -489,9 +494,11 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=100, help=' random seed.')
     config = parser.parse_args()
 
-    weightpath = os.path.join('./weight',  config.exid)
-    logpath = os.path.join('./log',  config.exid)
-    losspath = os.path.join('./loss',  config.exid)
+    # 使用results文件夹统一管理输出
+    resultspath = os.path.join('../results',  config.exid)
+    weightpath = os.path.join(resultspath, 'weight')
+    logpath = os.path.join(resultspath, 'log')
+    losspath = os.path.join(resultspath, 'loss')
     np.random.seed(config.seed)
     torch.manual_seed(config.seed)
     torch.cuda.manual_seed_all(config.seed)
@@ -517,7 +524,7 @@ if __name__ == '__main__':
             optimizer = torch.optim.Adam(model3d.parameters(), lr=1e-3)
             scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[25, 100], last_epoch=-1)
 
-            with open('./splitdataset.pkl', 'rb') as f:
+            with open('../configs/splitdataset.pkl', 'rb') as f:
                 dataset = pk.load(f)
             trainfile = dataset[i][0]
             validfile = dataset[i][1]

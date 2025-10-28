@@ -22,12 +22,12 @@ def create_dataset_split():
     - testdataset.pkl: 测试集文件列表（未标注数据，用于半监督学习）
     """
     
-    # 定义目录路径
-    train_image_dir = './dataset/imagesTr'
-    train_label_dir = './dataset/labelsTr'
-    test_image_dir = './dataset/imagesTs'
+    # 定义目录路径 - 相对于configs目录，需要上一级
+    train_image_dir = '../dataset/processdata2D/image'
+    train_label_dir = '../dataset/processdata2D/mask'
+    test_image_dir = '../dataset/imagesTs'  # 半监督学习的未标注数据
     
-    print("正在读取训练集文件...")
+    print("Reading training files...")
     # 获取所有训练图像文件
     train_images = get_image_files(train_image_dir)
     
@@ -38,13 +38,13 @@ def create_dataset_split():
         if os.path.exists(label_file):
             train_files.append(img_file)
         else:
-            print(f"警告: 未找到对应的标签文件 {img_file}")
+            print(f"Warning: Corresponding label file not found: {img_file}")
     
-    print(f"找到 {len(train_files)} 个训练样本")
+    print(f"Found {len(train_files)} training samples")
     
     # 获取测试集文件（用于半监督学习的未标注数据）
     test_files = get_image_files(test_image_dir)
-    print(f"找到 {len(test_files)} 个测试样本（用于半监督学习）")
+    print(f"Found {len(test_files)} test samples (for semi-supervised learning)")
     
     # 5折交叉验证划分
     n_splits = 5
@@ -57,26 +57,26 @@ def create_dataset_split():
         val_split = [train_files[i] for i in val_idx]
         dataset_split.append([train_split, val_split])
         print(f"\nFold {len(dataset_split)}:")
-        print(f"  训练集: {len(train_split)} 个样本")
-        print(f"  验证集: {len(val_split)} 个样本")
+        print(f"  Training set: {len(train_split)} samples")
+        print(f"  Validation set: {len(val_split)} samples")
     
     # 保存划分结果
-    print("\n正在保存 splitdataset.pkl...")
+    print("\nSaving splitdataset.pkl...")
     with open('splitdataset.pkl', 'wb') as f:
         pk.dump(dataset_split, f)
-    print("splitdataset.pkl 已保存")
+    print("splitdataset.pkl saved")
     
     # 保存测试集文件列表（用于半监督学习）
-    print("\n正在保存 testdataset.pkl...")
+    print("\nSaving testdataset.pkl...")
     with open('testdataset.pkl', 'wb') as f:
         pk.dump(test_files, f)
-    print(f"testdataset.pkl 已保存（包含 {len(test_files)} 个未标注样本）")
+    print(f"testdataset.pkl saved (containing {len(test_files)} unlabeled samples)")
     
-    print("\n数据集划分完成！")
+    print("\nDataset split completed!")
     print("=" * 50)
-    print("生成的文件:")
-    print("- splitdataset.pkl: 5折交叉验证的训练/验证集划分")
-    print("- testdataset.pkl: 测试集文件列表（用于半监督学习）")
+    print("Generated files:")
+    print("- splitdataset.pkl: 5-fold cross-validation train/val splits")
+    print("- testdataset.pkl: Test set file list (for semi-supervised learning)")
     print("=" * 50)
 
 if __name__ == '__main__':

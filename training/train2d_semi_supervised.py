@@ -1,11 +1,10 @@
-from segmentation_models_pytorch.deeplabv3 import DeepLabV3Plus
-# 抑制nnunet的打印输出
 import sys
 import os
-old_stderr = sys.stderr
-sys.stderr = open(os.devnull, 'w')
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from segmentation_models_pytorch.deeplabv3 import DeepLabV3Plus
 from nnunet.training.loss_functions import dice_loss, crossentropy
-sys.stderr = old_stderr
 
 from torch.utils.data import Dataset,DataLoader
 import torch
@@ -13,13 +12,13 @@ from torch.nn.functional import one_hot
 import nibabel as nib
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
-from utils import *
+from utils.utils import *
 import matplotlib
 matplotlib.use('AGG')  # 用于无显示器的服务器环境
 import matplotlib.pyplot as plt
 from albumentations import (HorizontalFlip,Resize, IAAPerspective, ShiftScaleRotate, CLAHE, Rotate,
 Transpose, ShiftScaleRotate, Blur, OpticalDistortion, GridDistortion, HueSaturationValue, IAAAdditiveGaussianNoise, GaussNoise, MotionBlur,
-                            MedianBlur, RandomBrightnessContrast, IAAPiecewiseAffine, IAASharpen, IAAEmboss, Flip, OneOf, Compose,ElasticTransform, Normalize)
+                            MedianBlur, RandomBrightnessContrast, IAAPiecewiseAffine, IAASharpen, IAAEmboss, Flip, OneOf, Compose as AlbCompose,ElasticTransform, Normalize)
 from medpy.metric import dc
 from augmentations.transforms import Compose as Compose3D
 from augmentations.transforms import CropNonEmptyMaskIfExists, PadIfNeeded, PadUpAndDown, RandomCrop
@@ -152,7 +151,7 @@ class Data(Dataset):
                                      p=1.0)
         self.istrain = istrain
         if self.istrain:
-            self.compose = Compose([#Rotate(p=0.3),
+            self.compose = AlbCompose([#Rotate(p=0.3),
                                     Flip(p=0.3),
 
                                     GaussNoise(var_limit=(0.0, 3.0),p=0.4),
@@ -642,7 +641,7 @@ if __name__=='__main__':
     parser.add_argument('--exid', type=str, default='ex0', help='the number of experiment.')
     parser.add_argument('--train_batch_size', type=int, default=8, help='train_batch_size.')
     parser.add_argument('--test_batch_size', type=int, default=8, help='test_batch_size.')
-    parser.add_argument('--datapath', type=str, default='./dataset/process2Ddata', help='the data path including image and mask.')
+    parser.add_argument('--datapath', type=str, default='../dataset/processdata2D', help='the data path including image and mask.')
     parser.add_argument('--seed', type=int, default=100, help='random seed.')
     parser.add_argument('--epochs', type=int, default=1000, help='train epochs.')
     parser.add_argument('--bn_eps', type=float,default=1e-5,  help='BN parameter.')
@@ -654,9 +653,15 @@ if __name__=='__main__':
     parser.add_argument('--cutmix_boxmask_outside_bounds', type=bool, default=False, help='box out siez bounds.')
     parser.add_argument('--cutmix_boxmask_no_invert', type=bool, default=False, help='where invert.')
     config = parser.parse_args()
+    
+    # Convert relative path to absolute path
+    if not os.path.isabs(config.datapath):
+        # Get the project root directory (two levels up from this script)
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        config.datapath = os.path.normpath(os.path.join(project_root, config.datapath))
 
     # 创建新的results文件夹，将所有训练结果放在一起
-    resultspath = os.path.join('./results', config.exid)
+    resultspath = os.path.join('../results', config.exid)
     weightpath = os.path.join(resultspath, 'weight')
     logpath = os.path.join(resultspath, 'log')
     losspath = os.path.join(resultspath, 'loss')
@@ -701,11 +706,11 @@ if __name__=='__main__':
             optimizer_r = torch.optim.Adam(model.module.branch2.parameters(), lr=1e-3)
             scheduler2 = torch.optim.lr_scheduler.MultiStepLR(optimizer_r, milestones=[50, 400], last_epoch=-1)
 
-            with open('./splitdataset.pkl', 'rb') as f:
+            with open('../configs/splitdataset.pkl', 'rb') as f:
                 dataset = pk.load(f)
             trainfile = dataset[i][0]
             validfile = dataset[i][1]
-            with open('./testdataset.pkl', 'rb') as f:
+            with open('../configs/testdataset.pkl', 'rb') as f:
                 test1file = pk.load(f)
 
             trainset = Data(root=config.datapath, name=trainfile,istrain=True)

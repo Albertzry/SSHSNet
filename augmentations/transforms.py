@@ -1,8 +1,13 @@
 import cv2
 import random
 import numpy as np
-from core.composition import Compose
-from core.transforms_interface import Transform, DualTransform
+import sys
+import os
+# Add parent directory to path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from data_loading.core.composition import Compose
+from data_loading.core.transforms_interface import Transform, DualTransform
 from . import functionals as F
 
 class Float(DualTransform):

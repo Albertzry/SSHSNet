@@ -2,13 +2,17 @@ import numpy as np
 import nibabel as nib
 import math
 import os
+import sys
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import torch
 from segmentation_models_pytorch.deeplabv3 import DeepLabV3Plus
 import torch.nn as nn
 from skimage.transform import resize
-from seresnet import se_resnext50, DeepLabV3PlusDecoder, se_resnet50
+from models.seresnet import se_resnext50, DeepLabV3PlusDecoder, se_resnet50
 import torch.nn.functional as F
-from spatial_attention_module import TrippleDualCrossAttModule
+from models.spatial_attention_module import TrippleDualCrossAttModule
 
 def normalize(img):
     data = img

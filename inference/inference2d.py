@@ -3,6 +3,10 @@ import numpy as np
 import nibabel as nib
 import math
 import os
+import sys
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import torch
 import matplotlib
 import matplotlib.pyplot as plt
@@ -12,8 +16,11 @@ from segmentation_models_pytorch.deeplabv3 import DeepLabV3Plus
 import sndhdr as snd
 import torch.nn as nn
 import pickle as pk
-from augmentations.transforms import Compose as Compose3D
+from augmentations.transforms import Compose
 from augmentations.transforms import CropNonEmptyMaskIfExists, PadIfNeeded, PadUpAndDown
+
+# Alias for backward compatibility
+Compose3D = Compose
 import SimpleITK as sitk
 from skimage.transform import resize
 import pandas as pd
