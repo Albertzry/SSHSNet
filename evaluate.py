@@ -76,7 +76,7 @@ target_nii_files = []
 for i, name in enumerate(filename):
     prediction_nii_files.append(os.path.join(savepath, name))
     # target_nii_files.append(os.path.join(os.path.join(mainpath, 'mask'), name))
-    target_nii_files.append(os.path.join(args.standerpath, name.replace('Case', 'mask_case')))
+    target_nii_files.append(os.path.join(args.standerpath, name))
 ds, meands = evaluate_demo(prediction_nii_files, target_nii_files)
 pd.DataFrame(data={
     'name': filename, 'dice': ds

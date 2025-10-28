@@ -121,7 +121,7 @@ if __name__ == '__main__':
         orishape = imgdata.shape
 
         if args.withlabel:
-            mask = itk.ReadImage(os.path.join(args.maskpath,'mask_' + name1.replace('Case', 'case')))
+            mask = itk.ReadImage(os.path.join(args.maskpath, name1))
             maskdata = itk.GetArrayFromImage(mask)
             maskspace = mask.GetSpacing()
             maskdirection = mask.GetDirection()

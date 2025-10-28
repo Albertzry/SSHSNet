@@ -368,9 +368,9 @@ if __name__ == '__main__':
             for i,name in enumerate(filename):
                 inde = allname.index(name)
                 print(name)
-                standermask = sitk.ReadImage(os.path.join(standerpath, name.replace('Case', 'mask_case')))
+                standermask = sitk.ReadImage(os.path.join(standerpath, name))
                 space = standermask.GetSpacing()
-                standermask = nib.load(os.path.join(standerpath, name.replace('Case', 'mask_case')))
+                standermask = nib.load(os.path.join(standerpath, name))
                 standermask = standermask.get_fdata()
 
                 newresolutionxy = 0.34482759 * 2
