@@ -198,12 +198,12 @@ python process_data.py --filepath './dataset/imagesTr' --maskpath "./dataset/lab
 ```bash
 # 训练2D网络
 for fold in 0 1 2 3 4; do
-    python train2d_semi_supervised.py --fold ${fold} --gpuid '0' --exid 'ex0' --datapath "./dataset/processdata2D" --train_batch_size 8 --seed 2021
+    python train2d_semi_supervised.py --fold ${fold} --gpuid '1' --exid 'ex0' --datapath "./dataset/processdata2D" --train_batch_size 2 --seed 2021
 done
 
 # 训练3D网络
 for fold in 0 1 2 3 4; do
-    python train2D3D_concate.py --fold ${fold} --gpuid '0,1' --exid 'ex1' --exid2D 'ex0' --datapath "./dataset/processdata3D" --seed 2021
+    python train2D3D_concate.py --fold ${fold} --gpuid '1' --exid 'ex1' --exid2D 'ex0' --datapath "./dataset/processdata3D" --seed 2021
 done
 ```
 

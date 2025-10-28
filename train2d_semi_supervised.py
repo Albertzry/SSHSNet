@@ -328,9 +328,9 @@ def trainer(writer):
         optimizer_l.zero_grad()
         optimizer_r.zero_grad()
 
-        minibatch = dataloader.next()
-        unsup_minibatch_0 = unsupervised_dataloader_0.next()
-        unsup_minibatch_1 = unsupervised_dataloader_1.next()
+        minibatch = next(dataloader)
+        unsup_minibatch_0 = next(unsupervised_dataloader_0)
+        unsup_minibatch_1 = next(unsupervised_dataloader_1)
 
         imgs = minibatch['data']
         gts = minibatch['label']
