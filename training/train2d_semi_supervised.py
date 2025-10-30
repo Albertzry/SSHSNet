@@ -330,8 +330,7 @@ def progress(istrain, epoch, model,optimizer, loader,writer):
     writer.add_scalar('MeanDice2', Mean_dice2.avg, epoch)
 
 
-    print('epoch:{0} validloss:{1}, validloss:{2}, Meandice:{3}, Meandice:{4}'.format(epoch, total_loss1.avg, total_loss2.avg,
-                                                                                      Mean_dice1.avg, Mean_dice2.avg))
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] epoch:{epoch} validloss:{total_loss1.avg}, validloss:{total_loss2.avg}, Meandice:{Mean_dice1.avg}, Meandice:{Mean_dice2.avg}")
     return Mean_dice1.avg, Mean_dice2.avg
 
 
@@ -487,9 +486,7 @@ def trainer(writer, epoch, criterion_ce=None, criteion_ce_dc=None):
     writer.add_scalar('lossun', total_loss3.avg, epoch)
     writer.add_scalar('loss', total_loss.avg, epoch)
 
-    print('epoch:{0} Trainloss1:{1}, Trainloss2:{2}, Meandice1:{3}, Meandice2:{4}'.format(epoch, total_loss1.avg,
-                                                                                      total_loss2.avg,
-                                                                                      Mean_dice1.avg, Mean_dice2.avg))
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] epoch:{epoch} Trainloss1:{total_loss1.avg}, Trainloss2:{total_loss2.avg}, Meandice1:{Mean_dice1.avg}, Meandice2:{Mean_dice2.avg}")
     
     # 返回训练指标
     return {
@@ -772,34 +769,31 @@ if __name__=='__main__':
                 bestdsc1 = savemodel(os.path.join(os.path.join(weightpath, sub), 'branch1'), model, smootheval1, bestdsc1)
                 bestdsc2 = savemodel(os.path.join(os.path.join(weightpath, sub), 'branch2'), model, smootheval2, bestdsc2)
                 
-                # 每个epoch自动保存折线图
-                if (epoch + 1) % 10 == 0 or epoch == 0:  # 每10个epoch或第一个epoch保存
-                    epochs = list(range(epoch + 1))
-                    
-                    # 确保testdice列表长度与epoch一致
-                    if len(testdice1_list) < epoch + 1:
-                        testdice1_list += [0] * (epoch + 1 - len(testdice1_list))
-                    if len(testdice2_list) < epoch + 1:
-                        testdice2_list += [0] * (epoch + 1 - len(testdice2_list))
-                    
-                    # 绘制train vs test dice对比图 (Branch1)
-                    plot(os.path.join(plotpath, sub), 'dice_train_vs_test_branch1', epochs,
-                         traindice1_list, testdice1_list)
-                    
-                    # 绘制train vs test dice对比图 (Branch2)
-                    plot(os.path.join(plotpath, sub), 'dice_train_vs_test_branch2', epochs,
-                         traindice2_list, testdice2_list)
-                    
-                    # 绘制branch1和branch2的loss对比
-                    plot_two_lines(os.path.join(plotpath, sub), 'loss_branch_comparison', epochs,
-                                  trainloss1_list, trainloss2_list, 'Branch1', 'Branch2')
-                    
-                    # 绘制branch1和branch2的dice对比
-                    plot_two_lines(os.path.join(plotpath, sub), 'dice_branch_comparison', epochs,
-                                  traindice1_list, traindice2_list, 'Branch1', 'Branch2')
-                    
-                    # 绘制train vs test loss对比
-                    plot_two_lines(os.path.join(plotpath, sub), 'loss_train_comparison', epochs,
-                                  trainloss1_list, trainloss2_list, 'Train Loss1', 'Train Loss2')
-                    
-                    print(f'Epoch {epoch}: images saved in {os.path.join(plotpath, sub)}')
+                # 每个epoch自动保存折线图（无控制台打印）
+                epochs = list(range(epoch + 1))
+
+                # 确保testdice列表长度与epoch一致
+                if len(testdice1_list) < epoch + 1:
+                    testdice1_list += [0] * (epoch + 1 - len(testdice1_list))
+                if len(testdice2_list) < epoch + 1:
+                    testdice2_list += [0] * (epoch + 1 - len(testdice2_list))
+
+                # 绘制train vs test dice对比图 (Branch1)
+                plot(os.path.join(plotpath, sub), 'dice_train_vs_test_branch1', epochs,
+                     traindice1_list, testdice1_list)
+
+                # 绘制train vs test dice对比图 (Branch2)
+                plot(os.path.join(plotpath, sub), 'dice_train_vs_test_branch2', epochs,
+                     traindice2_list, testdice2_list)
+
+                # 绘制branch1和branch2的loss对比
+                plot_two_lines(os.path.join(plotpath, sub), 'loss_branch_comparison', epochs,
+                              trainloss1_list, trainloss2_list, 'Branch1', 'Branch2')
+
+                # 绘制branch1和branch2的dice对比
+                plot_two_lines(os.path.join(plotpath, sub), 'dice_branch_comparison', epochs,
+                              traindice1_list, traindice2_list, 'Branch1', 'Branch2')
+
+                # 绘制train vs test loss对比
+                plot_two_lines(os.path.join(plotpath, sub), 'loss_train_comparison', epochs,
+                              trainloss1_list, trainloss2_list, 'Train Loss1', 'Train Loss2')

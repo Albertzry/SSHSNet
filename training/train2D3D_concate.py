@@ -14,6 +14,9 @@ from utils.utils import *
 import torch
 import nibabel as nib
 from skimage.transform import resize
+import matplotlib
+matplotlib.use('AGG')
+import matplotlib.pyplot as plt
 from augmentations.transforms import Compose, GaussianNoise, Flip, \
     PadIfNeeded, CropNonEmptyMaskIfExists, RandomRotate90, RandomScale2, PadUpAndDown, RotatePseudo2D, \
     ElasticTransformPseudo2D, CropNonEmptyMaskIfExistsBalance, Resize
@@ -303,9 +306,9 @@ def progress(istrain, epoch, model2d, model3d, optimizer, loader, writer):
     writer.add_scalar('MeanDice', Mean_dice.avg, epoch)
 
     if istrain:
-        print('epoch:{0} Trainloss:{1}, Meandice:{2}'.format(epoch, total_loss.avg, Mean_dice.avg))
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] epoch:{epoch} Trainloss:{total_loss.avg}, Meandice:{Mean_dice.avg}")
     else:
-        print('epoch:{0} validloss:{1}, Meandice:{2}'.format(epoch, total_loss.avg, Mean_dice.avg))
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] epoch:{epoch} validloss:{total_loss.avg}, Meandice:{Mean_dice.avg}")
     return total_loss.avg, Mean_dice.avg
 
 
@@ -500,6 +503,7 @@ if __name__ == '__main__':
     weightpath = os.path.join(resultspath, 'weight')
     logpath = os.path.join(resultspath, 'log')
     losspath = os.path.join(resultspath, 'loss')
+    plotpath = os.path.join(resultspath, 'plots')
     np.random.seed(config.seed)
     torch.manual_seed(config.seed)
     torch.cuda.manual_seed_all(config.seed)
@@ -516,9 +520,10 @@ if __name__ == '__main__':
             os.makedirs(os.path.join(losspath, sub), exist_ok=True)
             train_writer = SummaryWriter(log_dir=os.path.join(os.path.join(losspath, sub), 'train'))
             test_writer = SummaryWriter(log_dir=os.path.join(os.path.join(losspath, sub), 'test'))
+            os.makedirs(os.path.join(plotpath, sub), exist_ok=True)
 
             model2d = DualNetwork(None).cuda(len(config.gpuid.split(','))-1)
-            model2d = load_GPUS(model2d, os.path.join(os.path.join(os.path.join('./weight', config.exid2D), sub), config.branch_best))
+            model2d = load_GPUS(model2d, os.path.join('../results', config.exid2D, 'weight', sub, config.branch_best))
 
             model3d = DeeplabV3Plus3D(num_classes=20,
                                     encoder='se_resnetx50', mode='cat').cuda()
@@ -547,12 +552,19 @@ if __name__ == '__main__':
             bestdsc = 0
             # smootheval = None
             for epoch in range(config.epochs):
-                loss, _ = progress(istrain=True, epoch=epoch,model2d=model2d,  model3d=model3d, optimizer=optimizer,
+                train_loss, train_dice = progress(istrain=True, epoch=epoch,model2d=model2d,  model3d=model3d, optimizer=optimizer,
                                    loader=trainloader, writer=train_writer)
                 scheduler.step()
-                trainloss.append(loss)
+                trainloss.append(train_loss)
+                trainacc.append(train_dice)
                 with torch.no_grad():
                     vloss, dsc = progress(istrain=False, epoch=epoch, model2d=model2d, model3d=model3d, optimizer=optimizer,
                                           loader=testloader, writer=test_writer)
                 testloss.append(vloss)
+                testacc.append(dsc)
                 bestdsc = savemodel(os.path.join(weightpath, sub), model3d, dsc, bestdsc)
+
+                # 每个epoch保存训练/验证曲线（无额外打印）
+                epochs = list(range(epoch + 1))
+                plot(os.path.join(plotpath, sub), 'loss_train_vs_valid', epochs, trainloss, testloss)
+                plot(os.path.join(plotpath, sub), 'dice_train_vs_valid', epochs, trainacc, testacc)
