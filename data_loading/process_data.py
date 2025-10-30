@@ -7,6 +7,7 @@ import pandas as pd
 import os
 from skimage.measure import *
 import argparse
+from datetime import datetime
 
 def normalize(img):
 
@@ -102,7 +103,32 @@ if __name__ == '__main__':
     parser.add_argument('--withlabel', type=bool, default=False, help='if process data with label, True or False')
     parser.add_argument('--infomation', type=str, default='info.csv', help='the file name to save the imformation of data and preprocessing')
     args = parser.parse_args()
+    
+    def resolve_mask_path(mask_dir, image_filename):
+        """Resolve mask path by trying several naming patterns.
+        Order:
+          1) same name: {image_filename}
+          2) mask_ + same name: mask_{image_filename}
+          3) mask_ + Case→case: mask_{image_filename.replace('Case','case')}
+          4) Case→case (no prefix): {image_filename.replace('Case','case')}
+        Returns absolute path if found, else None.
+        """
+        candidates = [
+            os.path.join(mask_dir, image_filename),
+            os.path.join(mask_dir, f"mask_{image_filename}"),
+            os.path.join(mask_dir, f"mask_{image_filename.replace('Case','case')}"),
+            os.path.join(mask_dir, image_filename.replace('Case','case')),
+        ]
+        for p in candidates:
+            if os.path.exists(p):
+                return p
+        return None
     maindir = os.listdir(args.filepath)
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Start preprocessing. process2D={args.process2D}, withlabel={args.withlabel}")
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Input image dir: {args.filepath}")
+    if args.withlabel:
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Input mask  dir: {args.maskpath}")
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Save dir        : {args.savepath}")
     infor = []
     os.makedirs(os.path.join(args.savepath, 'image'), exist_ok=True)
     if args.withlabel:
@@ -113,6 +139,7 @@ if __name__ == '__main__':
     allorishape = []
     allresolution_size = []
     for i, name1 in enumerate(maindir):
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Processing ({i+1}/{len(maindir)}): {name1}")
         img = itk.ReadImage(os.path.join(args.filepath, name1))
         imgdata = itk.GetArrayFromImage(img)
         space = img.GetSpacing()
@@ -121,7 +148,10 @@ if __name__ == '__main__':
         orishape = imgdata.shape
 
         if args.withlabel:
-            mask = itk.ReadImage(os.path.join(args.maskpath, name1))
+            mask_path = resolve_mask_path(args.maskpath, name1)
+            if mask_path is None:
+                raise FileNotFoundError(f"Mask not found for image '{name1}'. Tried: same name, 'mask_' prefix, and Case→case in directory: {args.maskpath}")
+            mask = itk.ReadImage(mask_path)
             maskdata = itk.GetArrayFromImage(mask)
             maskspace = mask.GetSpacing()
             maskdirection = mask.GetDirection()
@@ -155,14 +185,16 @@ if __name__ == '__main__':
         file.SetSpacing(space)
         file.SetOrigin(origin)
         file.SetDirection(direction)
-        itk.WriteImage(file, os.path.join(os.path.join(args.savepath,'image'), name1))
+        out_img_path = os.path.join(os.path.join(args.savepath,'image'), name1)
+        itk.WriteImage(file, out_img_path)
         if args.withlabel:
             mfile = itk.GetImageFromArray(maskdata.astype(np.uint8))
             mfile.SetSpacing(maskspace)
             mfile.SetOrigin(maskorigin)
             mfile.SetDirection(maskdirection)
-            itk.WriteImage(mfile, os.path.join(os.path.join(args.savepath, 'mask'),
-                                              name1))
+            out_msk_path = os.path.join(os.path.join(args.savepath, 'mask'),
+                                              name1)
+            itk.WriteImage(mfile, out_msk_path)
         allsize.append(np.asarray(imgdata.shape))
         allstride.append(np.asarray(stride))
         allorishape.append(np.asarray(orishape))

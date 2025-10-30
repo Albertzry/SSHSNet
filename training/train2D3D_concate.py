@@ -21,6 +21,7 @@ from models.seresnet import se_resnext50, DeepLabV3PlusDecoder, se_resnet50
 from medpy.metric import dc
 import pickle as pk
 from models.spatial_attention_module import TrippleDualCrossAttModule
+from datetime import datetime
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -43,8 +44,8 @@ class AverageMeter(object):
 
 def plot(savepath, name, x, y1, y2):
     plt.title(name)
-    plt.plot(x, y1, color='red', label='train')
-    plt.plot(x, y2, color='green', label='valid')
+    plt.plot(x, y1, color='red', label='train', linewidth=1)
+    plt.plot(x, y2, color='blue', label='valid', linewidth=1)
     plt.legend(loc='upper right')
     plt.xlabel('epoch')
     plt.savefig(os.path.join(savepath, name + '.png'))
@@ -484,9 +485,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--fold', type=int, default=0, help='number fold to train.')
     parser.add_argument('--gpuid', type=str, default="0,1", help='gpuid, at least three.')
-    parser.add_argument('--datapath', type=str, default='./dataset/process3Ddata', help='data path.')
-    parser.add_argument('--train_batch_size', type=int, default=4, help='batch size, which was crop in a sample, every iteration')
-    parser.add_argument('--test_batch_size', type=int, default=6, help='batch size, which was crop in a sample, every iteration')
+    parser.add_argument('--datapath', type=str, default='../dataset/process3Ddata', help='data path.')
+    parser.add_argument('--train_batch_size', type=int, default=2, help='batch size, which was crop in a sample, every iteration')
+    parser.add_argument('--test_batch_size', type=int, default=2, help='batch size, which was crop in a sample, every iteration')
     parser.add_argument('--epochs', type=int, default=150, help='total number epoch')
     parser.add_argument('--branch_best', type=str, default="branch2", help='best_branch, which was the best model in 2D, default branch2.')
     parser.add_argument('--exid2D', type=str, default="ex0", help='experiment id for the 2D model for pretrain.')
@@ -508,6 +509,7 @@ if __name__ == '__main__':
         if i != config.fold:
             continue
         else:
+            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Start 3D training | fold={config.fold} exid={config.exid} datapath={config.datapath} gpuid={config.gpuid}")
             torch.cuda.empty_cache()
             os.makedirs(os.path.join(weightpath, sub), exist_ok=True)
             os.makedirs(os.path.join(logpath, sub), exist_ok=True)

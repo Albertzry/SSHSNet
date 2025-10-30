@@ -16,6 +16,7 @@ from utils.utils import *
 import matplotlib
 matplotlib.use('AGG')  # 用于无显示器的服务器环境
 import matplotlib.pyplot as plt
+from datetime import datetime
 from albumentations import (HorizontalFlip,Resize, IAAPerspective, ShiftScaleRotate, CLAHE, Rotate,
 Transpose, ShiftScaleRotate, Blur, OpticalDistortion, GridDistortion, HueSaturationValue, IAAAdditiveGaussianNoise, GaussNoise, MotionBlur,
                             MedianBlur, RandomBrightnessContrast, IAAPiecewiseAffine, IAASharpen, IAAEmboss, Flip, OneOf, Compose as AlbCompose,ElasticTransform, Normalize)
@@ -66,8 +67,8 @@ class AverageMeter(object):
 def plot(savepath,name,x,y1,y2):
     plt.figure(figsize=(10, 6))
     plt.title(name)
-    plt.plot(x,y1,color='red', label='train', linewidth=2)
-    plt.plot(x, y2, color='green', label='valid', linewidth=2)
+    plt.plot(x, y1, color='red', label='train', linewidth=1)
+    plt.plot(x, y2, color='blue', label='valid', linewidth=1)
     plt.legend(loc='upper right')
     plt.xlabel('epoch')
     plt.ylabel('value')
@@ -79,8 +80,8 @@ def plot_two_lines(savepath, name, x, y1, y2, label1='Line1', label2='Line2'):
     """绘制两条线的对比图"""
     plt.figure(figsize=(10, 6))
     plt.title(name)
-    plt.plot(x, y1, color='blue', label=label1, linewidth=2)
-    plt.plot(x, y2, color='orange', label=label2, linewidth=2)
+    plt.plot(x, y1, color='red', label=label1, linewidth=1)
+    plt.plot(x, y2, color='blue', label=label2, linewidth=1)
     plt.legend(loc='upper right')
     plt.xlabel('epoch')
     plt.ylabel('value')
@@ -637,10 +638,10 @@ if __name__=='__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--fold', type=int,default=0, help='number fold to train.')
-    parser.add_argument('--gpuid', type=str, default='0',help='use gpu id.')
+    parser.add_argument('--gpuid', type=str, default='1',help='use gpu id.')
     parser.add_argument('--exid', type=str, default='ex0', help='the number of experiment.')
-    parser.add_argument('--train_batch_size', type=int, default=8, help='train_batch_size.')
-    parser.add_argument('--test_batch_size', type=int, default=8, help='test_batch_size.')
+    parser.add_argument('--train_batch_size', type=int, default=2, help='train_batch_size.')
+    parser.add_argument('--test_batch_size', type=int, default=2, help='test_batch_size.')
     parser.add_argument('--datapath', type=str, default='../dataset/processdata2D', help='the data path including image and mask.')
     parser.add_argument('--seed', type=int, default=100, help='random seed.')
     parser.add_argument('--epochs', type=int, default=1000, help='train epochs.')
@@ -654,11 +655,10 @@ if __name__=='__main__':
     parser.add_argument('--cutmix_boxmask_no_invert', type=bool, default=False, help='where invert.')
     config = parser.parse_args()
     
-    # Convert relative path to absolute path
+    # Convert relative path to absolute path relative to this script directory
     if not os.path.isabs(config.datapath):
-        # Get the project root directory (two levels up from this script)
-        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        config.datapath = os.path.normpath(os.path.join(project_root, config.datapath))
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        config.datapath = os.path.normpath(os.path.join(script_dir, config.datapath))
 
     # 创建新的results文件夹，将所有训练结果放在一起
     resultspath = os.path.join('../results', config.exid)
@@ -676,6 +676,7 @@ if __name__=='__main__':
         if i != config.fold:
             continue
         else:
+            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Start 2D training | fold={config.fold} exid={config.exid} datapath={config.datapath} gpuid={config.gpuid}")
             torch.cuda.empty_cache()
             os.makedirs(os.path.join(weightpath, sub), exist_ok=True)
             os.makedirs(os.path.join(logpath, sub), exist_ok=True)
