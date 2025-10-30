@@ -189,21 +189,21 @@ pip install torch==1.7.1 scikit-image==0.17.2 scikit-learn==0.24.0 SimpleITK==2.
 python create_dataset_split.py
 
 # 预处理数据
-python process_data.py --filepath './dataset/imagesTr' --maskpath "./dataset/labelsTr" --savepath "./dataset/processdata2D" --process2D True --withlabel True --infomation 'info.csv'
-python process_data.py --filepath './dataset/imagesTs' --savepath "./dataset/processdata2D" --process2D True --infomation 'unlabel_info.csv'
-python process_data.py --filepath './dataset/imagesTr' --maskpath "./dataset/labelsTr" --savepath "./dataset/processdata3D" --withlabel True --infomation 'info.csv'
+python process_data.py --filepath '../dataset/MR' --maskpath "../dataset/Mask" --savepath "../dataset/processdata2D" --process2D True --withlabel True --infomation 'info.csv'
+python process_data.py --filepath '../dataset/imagesTs' --savepath "../dataset/processdata2D" --process2D True --infomation 'unlabel_info.csv'
+python process_data.py --filepath '../dataset/MR' --maskpath "../dataset/Mask" --savepath "../dataset/processdata3D" --withlabel True --infomation 'info.csv'
 ```
 
 ### 步骤3: 训练
 ```bash
 # 训练2D网络
 for fold in 0 1 2 3 4; do
-    python train2d_semi_supervised.py --fold ${fold} --gpuid '1' --exid 'ex0' --datapath "./dataset/processdata2D" --train_batch_size 2 --seed 2021
+    python train2d_semi_supervised.py --fold ${fold} --gpuid '1' --exid 'ex0' --datapath "../dataset/processdata2D" --train_batch_size 8 --seed 2021
 done
 
 # 训练3D网络
 for fold in 0 1 2 3 4; do
-    python train2D3D_concate.py --fold ${fold} --gpuid '1' --exid 'ex1' --exid2D 'ex0' --datapath "./dataset/processdata3D" --seed 2021
+    python train2D3D_concate.py --fold ${fold} --gpuid '1' --exid 'ex1' --exid2D 'ex0' --datapath "../dataset/processdata3D" --seed 2021
 done
 ```
 
