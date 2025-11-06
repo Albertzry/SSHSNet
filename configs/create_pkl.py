@@ -123,7 +123,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate splitdataset.pkl and testdataset.pkl')
     parser.add_argument('--train_image_dir', type=str, default='/root/SSHSNet/dataset/MR', help='Path to training images (NIfTI)')
     parser.add_argument('--train_label_dir', type=str, default='/root/SSHSNet/dataset/Mask', help='Path to training labels (NIfTI)')
-    parser.add_argument('--test_image_dir', type=str, default='/root/SSHSNet/dataset/imagesTs', help='Path to unlabeled test images (NIfTI)')
+    parser.add_argument('--test_image_dir', type=str, default='/root/SSHSNet/dataset/MR', help='Path to unlabeled test images (NIfTI)')
     args = parser.parse_args()
 
     create_dataset_split(

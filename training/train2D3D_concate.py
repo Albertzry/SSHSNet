@@ -491,7 +491,7 @@ if __name__ == '__main__':
     parser.add_argument('--datapath', type=str, default='../dataset/process3Ddata', help='data path.')
     parser.add_argument('--train_batch_size', type=int, default=2, help='batch size, which was crop in a sample, every iteration')
     parser.add_argument('--test_batch_size', type=int, default=2, help='batch size, which was crop in a sample, every iteration')
-    parser.add_argument('--epochs', type=int, default=150, help='total number epoch')
+    parser.add_argument('--epochs', type=int, default=500, help='total number epoch')
     parser.add_argument('--branch_best', type=str, default="branch2", help='best_branch, which was the best model in 2D, default branch2.')
     parser.add_argument('--exid2D', type=str, default="ex0", help='experiment id for the 2D model for pretrain.')
     parser.add_argument('--exid', type=str, default="ex1", help='experiment id.')
